@@ -1,25 +1,14 @@
 # Bike Sharing Dashboard
 
-## Setup Environment - Anaconda
-
+## Setup Environment
 ```
-conda create --name main-ds python=3.9
-conda activate main-ds
-pip install -r requirements.txt
-```
-
-## Setup Environment - Shell/Terminal
-
-```
-mkdir submission-talitha
-cd submission-talitha
-pipenv install
-pipenv shell
+### Menggunakan pip
+```bash
 pip install -r requirements.txt
 ```
 
 ## Run Streamlit App
 
 ```
-streamlit run dashboard/dashboard.py
+streamlit run dashboard\ (6).py
 ```
