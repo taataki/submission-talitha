@@ -1,1 +1,1 @@
-https://submission-talitha-dashboard1.streamlit.app/
+https://submission-talitha-dashboard.streamlit.app/
