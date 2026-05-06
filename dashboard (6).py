@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import seaborn as sns
 import streamlit as st
-from PIL import Image
 import os
 
 sns.set_style("whitegrid")
