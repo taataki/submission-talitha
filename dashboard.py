@@ -281,86 +281,61 @@ st.markdown("---")
 # Cuaca dan Musim
 # =========================
 
-# =========================================================
-# Pertanyaan Bisnis 2
-# =========================================================
 st.subheader(
-    "🖼️ Kombinasi Cuaca dan Musim terhadap Total Rental"
+    "📌 Kombinasi Cuaca dan Musim Terhadap Rata-Rata Rental Harian"
 )
 
-df["kombinasi_cuaca_musim"] = df["season_label"] + " - " + df["weather_label"]
-
-combo_daily = (
-    df.groupby(["dteday", "season_label", "weather_label", "kombinasi_cuaca_musim"])["cnt"]
+combo_stats = (
+    df.groupby(["season_label", "weather_label"])["cnt"]
     .mean()
     .reset_index()
+    .rename(columns={"cnt": "Rata-rata Rental Harian"})
 )
 
-combo_avg = (
-    df.groupby(["season_label", "weather_label", "kombinasi_cuaca_musim"])["cnt"]
-    .mean()
-    .reset_index()
-    .sort_values("cnt", ascending=False)
-)
+season_order = ["Spring", "Summer", "Fall", "Winter"]
+weather_order = ["Clear", "Mist", "Light Rain/Snow"]
 
-selected_combo = st.multiselect(
-    "Pilih kombinasi musim dan cuaca",
-    options=combo_avg["kombinasi_cuaca_musim"].unique(),
-    default=combo_avg["kombinasi_cuaca_musim"].unique()
-)
+combo_pivot = combo_stats.pivot(
+    index="season_label",
+    columns="weather_label",
+    values="Rata-rata Rental Harian"
+).reindex(index=season_order, columns=weather_order)
 
-filtered_combo = combo_daily[
-    combo_daily["kombinasi_cuaca_musim"].isin(selected_combo)
-]
-
-fig = px.line(
-    filtered_combo,
-    x="dteday",
-    y="cnt",
-    color="kombinasi_cuaca_musim",
-    markers=True,
-    title="Tren Total Rental Harian Berdasarkan Kombinasi Musim dan Cuaca",
-    labels={
-        "dteday": "Tanggal",
-        "cnt": "Total Rental Harian",
-        "kombinasi_cuaca_musim": "Kombinasi Musim - Cuaca"
-    }
+fig = px.imshow(
+    combo_pivot,
+    text_auto=".0f",
+    aspect="auto",
+    color_continuous_scale="YlOrRd",
+    labels=dict(
+        x="Kondisi Cuaca",
+        y="Musim",
+        color="Rata-rata Rental"
+    ),
+    title="Rata-rata Total Rental Harian Berdasarkan Kombinasi Musim dan Cuaca"
 )
 
 fig.update_layout(
-    hovermode="x unified",
-    legend_title_text="Kombinasi"
+    xaxis_title="Kondisi Cuaca",
+    yaxis_title="Musim"
 )
 
 st.plotly_chart(fig, use_container_width=True)
 
-st.markdown("**Rata-rata Total Rental Harian per Kombinasi Musim dan Cuaca**")
-st.dataframe(
-    combo_avg.rename(columns={
-        "season_label": "Musim",
-        "weather_label": "Cuaca",
-        "kombinasi_cuaca_musim": "Kombinasi",
-        "cnt": "Rata-rata Rental Harian"
-    }),
-    use_container_width=True,
-    hide_index=True
-)
+combo_table = combo_stats.copy()
+baseline = combo_table["Rata-rata Rental Harian"].max()
 
-baseline = combo_avg["cnt"].max()
-
-combo_avg["Penurunan vs Kombinasi Tertinggi (%)"] = (
-    (combo_avg["cnt"] - baseline) / baseline * 100
+combo_table["Penurunan vs Tertinggi (%)"] = (
+    (combo_table["Rata-rata Rental Harian"] - baseline) / baseline * 100
 ).round(1)
 
-combo_drop = combo_avg.sort_values("Penurunan vs Kombinasi Tertinggi (%)").copy()
+combo_table = combo_table.sort_values("Penurunan vs Tertinggi (%)")
 
-st.markdown("**Kombinasi dengan Penurunan Permintaan Terbesar**")
+st.markdown("**Kombinasi Cuaca–Musim dengan Penurunan Permintaan Terbesar**")
+
 st.dataframe(
-    combo_drop.rename(columns={
+    combo_table.rename(columns={
         "season_label": "Musim",
-        "weather_label": "Cuaca",
-        "kombinasi_cuaca_musim": "Kombinasi",
-        "cnt": "Rata-rata Rental Harian"
+        "weather_label": "Cuaca"
     }),
     use_container_width=True,
     hide_index=True
