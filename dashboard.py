@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import seaborn as sns
 import streamlit as st
+import plotly.express as px
 
 sns.set_style("whitegrid")
 plt.rcParams["figure.facecolor"] = "#f9f9f9"
@@ -91,41 +92,54 @@ st.markdown("---")
 # Pertanyaan Bisnis 1
 # =========================
 st.subheader(
-    "📌 Pertanyaan Bisnis 1: Bagaimana perbedaan rental sepeda antara hari kerja dan hari libur/akhir pekan?"
+    "📌 Pertanyaan Bisnis 1: Bagaimana pola rata-rata jumlah rental sepeda per jam "
+    "antara hari kerja dan hari libur/akhir pekan?"
 )
+st.subheader("📌 Pola Rental Per Jam (Interaktif)")
 
-workingday_stats = (
-    df.groupby("workingday_label")["cnt"]
-    .agg(["mean", "median", "sum", "count"])
-    .rename(columns={
-        "mean": "Rata-rata Rental",
-        "median": "Median Rental",
-        "sum": "Total Rental",
-        "count": "Jumlah Hari"
-    })
+hourly = (
+    df.groupby(["hr", "workingday_label"])["cnt"]
+    .mean()
     .reset_index()
 )
 
-fig, ax = plt.subplots(figsize=(8, 5))
-sns.barplot(
-    data=workingday_stats,
-    x="workingday_label",
-    y="Rata-rata Rental",
-    ax=ax
+fig = px.line(
+    hourly,
+    x="hr",
+    y="cnt",
+    color="workingday_label",
+    markers=True,
+    labels={
+        "hr": "Jam",
+        "cnt": "Rata-rata Rental",
+        "workingday_label": "Tipe Hari"
+    },
+    title="Pola Rental Sepeda Per Jam"
 )
 
-ax.set_xlabel("Tipe Hari")
-ax.set_ylabel("Rata-rata Rental Harian")
-ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
-
-fig.tight_layout()
-st.pyplot(fig)
-plt.close(fig)
-
-st.dataframe(workingday_stats, use_container_width=True, hide_index=True)
-
+st.plotly_chart(fig, use_container_width=True)
 st.markdown("---")
 
+# =========================
+# Visualisasi Tambahan Q1
+# =========================
+st.subheader("🗓️ Heatmap Rental per Jam dan Hari")
+
+pivot = df.pivot_table(
+    values="cnt",
+    index="weekday_label",
+    columns="hr",
+    aggfunc="mean"
+)
+
+fig = px.imshow(
+    pivot,
+    aspect="auto",
+    color_continuous_scale="YlOrRd",
+    labels=dict(x="Jam", y="Hari", color="Rental")
+)
+
+st.plotly_chart(fig, use_container_width=True)
 # =========================
 # Visualisasi Tambahan Q1
 # =========================
