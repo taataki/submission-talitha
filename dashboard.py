@@ -162,6 +162,48 @@ st.markdown("---")
 # =========================
 # Visualisasi Tambahan Q1
 # =========================
+st.subheader("🗓️ Heatmap Rata-rata Rental Sepeda per Jam dan Hari")
+
+weekday_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+pivot_heatmap = (
+    df2.pivot_table(
+        values="cnt",
+        index="weekday_label",
+        columns="hr",
+        aggfunc="mean"
+    )
+    .reindex(weekday_order)
+)
+
+fig, ax = plt.subplots(figsize=(16, 5))
+sns.heatmap(
+    pivot_heatmap,
+    cmap='YlOrRd',
+    ax=ax,
+    linewidths=0.2,
+    linecolor='white',
+    cbar_kws={'label': 'Rata-rata Rental'},
+    fmt='.0f',
+    annot=True,
+    annot_kws={'size': 7}
+)
+
+ax.set_title(
+    'Heatmap Rata-rata Rental Sepeda per Jam dan Hari',
+    fontsize=14,
+    fontweight='bold',
+    pad=12
+)
+ax.set_xlabel('Jam (0–23)', fontsize=12)
+ax.set_ylabel('Hari', fontsize=12)
+
+plt.tight_layout()
+st.pyplot(fig)
+plt.close(fig)
+
+# =========================
+# Visualisasi Tambahan Q1
+# =========================
 st.subheader("📊 Rata-rata Rental Berdasarkan Hari dalam Seminggu")
 
 weekday_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
