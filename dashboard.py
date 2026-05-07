@@ -201,7 +201,7 @@ st.markdown("---")
 # Pertanyaan Bisnis 2
 # =========================
 st.subheader(
-    "📌 Pertanyaan Bisnis 2: Bagaimana pengaruh musim terhadap jumlah rental sepeda?"
+    "📌 Pertanyaan Bisnis 2: Pengaruh Cuaca dan Musim terhadap Rata-rata Rental Harian?"
 )
 
 season_stats = (
@@ -274,6 +274,97 @@ plt.close(fig)
 st.dataframe(weather_stats, use_container_width=True, hide_index=True)
 
 st.markdown("---")
+
+
+
+# =========================
+# Cuaca dan Musim
+# =========================
+
+# =========================================================
+# Pertanyaan Bisnis 2
+# =========================================================
+st.subheader(
+    "🖼️ Kombinasi Cuaca dan Musim terhadap Total Rental"
+)
+
+df["kombinasi_cuaca_musim"] = df["season_label"] + " - " + df["weather_label"]
+
+combo_daily = (
+    df.groupby(["dteday", "season_label", "weather_label", "kombinasi_cuaca_musim"])["cnt"]
+    .mean()
+    .reset_index()
+)
+
+combo_avg = (
+    df.groupby(["season_label", "weather_label", "kombinasi_cuaca_musim"])["cnt"]
+    .mean()
+    .reset_index()
+    .sort_values("cnt", ascending=False)
+)
+
+selected_combo = st.multiselect(
+    "Pilih kombinasi musim dan cuaca",
+    options=combo_avg["kombinasi_cuaca_musim"].unique(),
+    default=combo_avg["kombinasi_cuaca_musim"].unique()
+)
+
+filtered_combo = combo_daily[
+    combo_daily["kombinasi_cuaca_musim"].isin(selected_combo)
+]
+
+fig = px.line(
+    filtered_combo,
+    x="dteday",
+    y="cnt",
+    color="kombinasi_cuaca_musim",
+    markers=True,
+    title="Tren Total Rental Harian Berdasarkan Kombinasi Musim dan Cuaca",
+    labels={
+        "dteday": "Tanggal",
+        "cnt": "Total Rental Harian",
+        "kombinasi_cuaca_musim": "Kombinasi Musim - Cuaca"
+    }
+)
+
+fig.update_layout(
+    hovermode="x unified",
+    legend_title_text="Kombinasi"
+)
+
+st.plotly_chart(fig, use_container_width=True)
+
+st.markdown("**Rata-rata Total Rental Harian per Kombinasi Musim dan Cuaca**")
+st.dataframe(
+    combo_avg.rename(columns={
+        "season_label": "Musim",
+        "weather_label": "Cuaca",
+        "kombinasi_cuaca_musim": "Kombinasi",
+        "cnt": "Rata-rata Rental Harian"
+    }),
+    use_container_width=True,
+    hide_index=True
+)
+
+baseline = combo_avg["cnt"].max()
+
+combo_avg["Penurunan vs Kombinasi Tertinggi (%)"] = (
+    (combo_avg["cnt"] - baseline) / baseline * 100
+).round(1)
+
+combo_drop = combo_avg.sort_values("Penurunan vs Kombinasi Tertinggi (%)").copy()
+
+st.markdown("**Kombinasi dengan Penurunan Permintaan Terbesar**")
+st.dataframe(
+    combo_drop.rename(columns={
+        "season_label": "Musim",
+        "weather_label": "Cuaca",
+        "kombinasi_cuaca_musim": "Kombinasi",
+        "cnt": "Rata-rata Rental Harian"
+    }),
+    use_container_width=True,
+    hide_index=True
+)
 
 # =========================
 # Tren Harian
