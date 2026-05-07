@@ -1,14 +1,14 @@
 # Bike Sharing Dashboard
 
-## Setup Environment
-```
-### Menggunakan pip
-```bash
-pip install -r requirements.txt
-```
+## Setup Virtual Environment
 
-## Run Streamlit App
+python -m venv venv
+venv\Scripts\activate
 
-```
+## Install Library
+
+ pip freeze requirements.txt
+
+## Run Dashboard
+
 streamlit run dashboard.py
-```
