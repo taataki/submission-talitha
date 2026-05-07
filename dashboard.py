@@ -18,7 +18,15 @@ def load_data():
     df = pd.read_csv("main_data.csv")
     df["dteday"] = pd.to_datetime(df["dteday"])
     df["year"] = df["yr"].map({0: 2011, 1: 2012})
+
+    if "workingday_label" not in df.columns:
+        df["workingday_label"] = df["workingday"].map({
+            0: "Akhir Pekan/Libur",
+            1: "Hari Kerja"
+        })
+
     df.sort_values("dteday", inplace=True)
+    df.reset_index(drop=True, inplace=True)
     return df
 
 df_full = load_data()
@@ -48,7 +56,7 @@ df = df_full[
 ].copy()
 
 st.title("🚲 Bike Sharing Analysis Dashboard")
-st.markdown("**Washington D.C. · 2011–2012**")
+st.markdown("Washington D.C. · 2011–2012")
 st.markdown("---")
 
 col1, col2, col3, col4 = st.columns(4)
@@ -59,7 +67,159 @@ col4.metric("Maks. Rental/Hari", f"{df['cnt'].max():,}")
 
 st.markdown("---")
 
+# =========================================================
+# Pertanyaan Bisnis 1
+# =========================================================
+st.subheader(
+    "📌 Pertanyaan Bisnis 1: Bagaimana perbedaan rata-rata rental sepeda "
+    "antara hari kerja dan hari libur/akhir pekan?"
+)
+
+workingday_stats = (
+    df.groupby("workingday_label")["cnt"]
+    .agg(["mean", "median", "sum", "count"])
+    .rename(columns={
+        "mean": "Rata-rata Rental",
+        "median": "Median Rental",
+        "sum": "Total Rental",
+        "count": "Jumlah Hari"
+    })
+    .reset_index()
+)
+
+fig, ax = plt.subplots(figsize=(8, 5))
+sns.barplot(
+    data=workingday_stats,
+    x="workingday_label",
+    y="Rata-rata Rental",
+    ax=ax
+)
+ax.set_xlabel("Tipe Hari")
+ax.set_ylabel("Rata-rata Rental Harian")
+ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+fig.tight_layout()
+st.pyplot(fig)
+plt.close(fig)
+
+st.dataframe(workingday_stats, use_container_width=True, hide_index=True)
+
+st.markdown("---")
+
+# =========================================================
+# Visualisasi tambahan untuk Pertanyaan Bisnis 1
+# =========================================================
+st.subheader("📊 Pola Rental Berdasarkan Hari dalam Seminggu")
+
+weekday_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+weekday_stats = (
+    df.groupby("weekday_label")["cnt"]
+    .mean()
+    .reindex(weekday_order)
+    .reset_index()
+    .rename(columns={
+        "weekday_label": "Hari",
+        "cnt": "Rata-rata Rental"
+    })
+)
+
+fig, ax = plt.subplots(figsize=(10, 5))
+sns.barplot(
+    data=weekday_stats,
+    x="Hari",
+    y="Rata-rata Rental",
+    ax=ax
+)
+ax.set_xlabel("Hari")
+ax.set_ylabel("Rata-rata Rental Harian")
+ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+fig.tight_layout()
+st.pyplot(fig)
+plt.close(fig)
+
+st.dataframe(weekday_stats, use_container_width=True, hide_index=True)
+
+st.markdown("---")
+
+# =========================================================
+# Pertanyaan Bisnis 2
+# =========================================================
+st.subheader(
+    "📌 Pertanyaan Bisnis 2: Bagaimana pengaruh musim terhadap jumlah rental sepeda?"
+)
+
+season_stats = (
+    df.groupby("season_label")["cnt"]
+    .agg(["mean", "median", "sum", "count"])
+    .rename(columns={
+        "mean": "Rata-rata Rental",
+        "median": "Median Rental",
+        "sum": "Total Rental",
+        "count": "Jumlah Hari"
+    })
+    .sort_values("Rata-rata Rental", ascending=False)
+    .reset_index()
+)
+
+fig, ax = plt.subplots(figsize=(10, 5))
+sns.barplot(
+    data=season_stats,
+    x="season_label",
+    y="Rata-rata Rental",
+    ax=ax
+)
+ax.set_xlabel("Musim")
+ax.set_ylabel("Rata-rata Rental Harian")
+ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+fig.tight_layout()
+st.pyplot(fig)
+plt.close(fig)
+
+st.dataframe(season_stats, use_container_width=True, hide_index=True)
+
+st.markdown("---")
+
+# =========================================================
+# Visualisasi tambahan: Cuaca
+# =========================================================
+st.subheader("🌤️ Rata-rata Rental Berdasarkan Kondisi Cuaca")
+
+weather_stats = (
+    df.groupby("weather_label")["cnt"]
+    .agg(["mean", "median", "sum", "count"])
+    .rename(columns={
+        "mean": "Rata-rata Rental",
+        "median": "Median Rental",
+        "sum": "Total Rental",
+        "count": "Jumlah Hari"
+    })
+    .sort_values("Rata-rata Rental", ascending=False)
+    .reset_index()
+)
+
+fig, ax = plt.subplots(figsize=(10, 5))
+sns.barplot(
+    data=weather_stats,
+    x="weather_label",
+    y="Rata-rata Rental",
+    ax=ax
+)
+ax.set_xlabel("Kondisi Cuaca")
+ax.set_ylabel("Rata-rata Rental Harian")
+ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+fig.tight_layout()
+st.pyplot(fig)
+plt.close(fig)
+
+st.dataframe(weather_stats, use_container_width=True, hide_index=True)
+
+st.markdown("---")
+
+# =========================================================
+# Tren Harian
+# =========================================================
 st.subheader("📈 Tren Rental Harian")
+
 fig, ax = plt.subplots(figsize=(16, 4))
 ax.plot(df["dteday"], df["cnt"], linewidth=1.5)
 ax.set_xlabel("Tanggal")
@@ -71,20 +231,28 @@ plt.close(fig)
 
 st.markdown("---")
 
+# =========================================================
+# Tren Bulanan per Tahun
+# =========================================================
 st.subheader("📅 Rata-rata Rental Bulanan per Tahun")
+
 monthly_avg = (
     df.groupby(["year", "mnth"])["cnt"]
     .mean()
     .reset_index()
 )
 
-month_names = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
-monthly_avg["month_name"] = monthly_avg["mnth"].apply(lambda x: month_names[x - 1])
+month_names = [
+    "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+    "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
+]
+
+monthly_avg["Bulan"] = monthly_avg["mnth"].apply(lambda x: month_names[x - 1])
 
 fig, ax = plt.subplots(figsize=(14, 5))
 sns.lineplot(
     data=monthly_avg,
-    x="month_name",
+    x="Bulan",
     y="cnt",
     hue="year",
     marker="o",
@@ -102,134 +270,21 @@ yearly_stats = (
     .agg(["sum", "mean", "median", "max"])
     .rename(columns={
         "sum": "Total Rental",
-        "mean": "Rata-rata",
-        "median": "Median",
-        "max": "Maksimum"
+        "mean": "Rata-rata Rental",
+        "median": "Median Rental",
+        "max": "Maksimum Rental"
     })
-)
-st.dataframe(yearly_stats, use_container_width=True)
-
-st.markdown("---")
-
-st.subheader("🍂 Rata-rata Rental per Musim")
-season_stats = (
-    df.groupby("season_label")["cnt"]
-    .agg(["mean", "median", "count"])
-    .rename(columns={
-        "mean": "Rata-rata",
-        "median": "Median",
-        "count": "Jumlah Hari"
-    })
-    .sort_values("Rata-rata", ascending=False)
-)
-
-fig, ax = plt.subplots(figsize=(10, 5))
-sns.barplot(
-    data=season_stats.reset_index(),
-    x="season_label",
-    y="Rata-rata",
-    ax=ax
-)
-ax.set_xlabel("Musim")
-ax.set_ylabel("Rata-rata Rental Harian")
-ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
-fig.tight_layout()
-st.pyplot(fig)
-plt.close(fig)
-
-st.dataframe(season_stats, use_container_width=True)
-
-st.markdown("---")
-
-st.subheader("🌤️ Rata-rata Rental per Kondisi Cuaca")
-weather_stats = (
-    df.groupby("weather_label")["cnt"]
-    .agg(["mean", "median", "count"])
-    .rename(columns={
-        "mean": "Rata-rata",
-        "median": "Median",
-        "count": "Jumlah Hari"
-    })
-    .sort_values("Rata-rata", ascending=False)
-)
-
-fig, ax = plt.subplots(figsize=(10, 5))
-sns.barplot(
-    data=weather_stats.reset_index(),
-    x="weather_label",
-    y="Rata-rata",
-    ax=ax
-)
-ax.set_xlabel("Kondisi Cuaca")
-ax.set_ylabel("Rata-rata Rental Harian")
-ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
-fig.tight_layout()
-st.pyplot(fig)
-plt.close(fig)
-
-st.dataframe(weather_stats, use_container_width=True)
-
-st.markdown("---")
-
-st.subheader("📆 Rata-rata Rental Berdasarkan Hari")
-weekday_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-
-weekday_stats = (
-    df.groupby("weekday_label")["cnt"]
-    .mean()
-    .reindex(weekday_order)
     .reset_index()
 )
 
-fig, ax = plt.subplots(figsize=(10, 5))
-sns.barplot(
-    data=weekday_stats,
-    x="weekday_label",
-    y="cnt",
-    ax=ax
-)
-ax.set_xlabel("Hari")
-ax.set_ylabel("Rata-rata Rental")
-ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
-fig.tight_layout()
-st.pyplot(fig)
-plt.close(fig)
-
-st.dataframe(weekday_stats, use_container_width=True, hide_index=True)
+st.dataframe(yearly_stats, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
-st.subheader("🏢 Hari Kerja vs Akhir Pekan/Libur")
-workingday_stats = (
-    df.groupby("workingday")["cnt"]
-    .agg(["mean", "median", "count"])
-    .rename(index={0: "Akhir Pekan/Libur", 1: "Hari Kerja"})
-    .rename(columns={
-        "mean": "Rata-rata",
-        "median": "Median",
-        "count": "Jumlah Hari"
-    })
-)
-
-fig, ax = plt.subplots(figsize=(8, 5))
-sns.barplot(
-    data=workingday_stats.reset_index(),
-    x="workingday",
-    y="Rata-rata",
-    ax=ax
-)
-ax.set_xlabel("Tipe Hari")
-ax.set_ylabel("Rata-rata Rental Harian")
-ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
-fig.tight_layout()
-st.pyplot(fig)
-plt.close(fig)
-
-st.dataframe(workingday_stats, use_container_width=True)
-
-st.markdown("---")
-
-st.subheader("👥 Casual vs Registered Users")
+# =========================================================
+# Casual vs Registered
+# =========================================================
+st.subheader("👥 Total Rental Berdasarkan Tipe Pengguna")
 
 user_total = pd.DataFrame({
     "Tipe User": ["Casual", "Registered"],
@@ -255,12 +310,31 @@ st.dataframe(user_total, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
+# =========================================================
+# Korelasi Numerik
+# =========================================================
 st.subheader("🌡️ Korelasi Variabel Numerik")
-corr_cols = ["temp", "atemp", "hum", "windspeed", "casual", "registered", "cnt"]
+
+corr_cols = [
+    "temp",
+    "atemp",
+    "hum",
+    "windspeed",
+    "casual",
+    "registered",
+    "cnt"
+]
+
 corr = df[corr_cols].corr()
 
 fig, ax = plt.subplots(figsize=(10, 6))
-sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
+sns.heatmap(
+    corr,
+    annot=True,
+    fmt=".2f",
+    cmap="coolwarm",
+    ax=ax
+)
 fig.tight_layout()
 st.pyplot(fig)
 plt.close(fig)
