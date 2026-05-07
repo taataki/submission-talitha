@@ -88,58 +88,77 @@ col4.metric("Maks. Rental/Hari", f"{df['cnt'].max():,}")
 
 st.markdown("---")
 
+@st.cache_data
+def load_hour_data():
+    df2 = pd.read_csv("hour.csv")
+    df2["dteday"] = pd.to_datetime(df2["dteday"])
+
+    df2["workingday_label"] = df2["workingday"].map({
+        0: "Akhir Pekan/Libur",
+        1: "Hari Kerja"
+    })
+
+    df2["weekday_label"] = df2["weekday"].map({
+        0: "Sun", 1: "Mon", 2: "Tue", 3: "Wed",
+        4: "Thu", 5: "Fri", 6: "Sat"
+    })
+
+    df2.sort_values("dteday", inplace=True)
+    df2.reset_index(drop=True, inplace=True)
+
+    return df2
+
+df_full = load_data()
+df2_full = load_hour_data()
+df2 = df2_full[
+    (df2_full["dteday"] >= pd.Timestamp(start_date)) &
+    (df2_full["dteday"] <= pd.Timestamp(end_date))
+].copy()
+
+if tipe_hari == "Hari Kerja":
+    df2 = df2[df2["workingday"] == 1]
+elif tipe_hari == "Akhir Pekan/Libur":
+    df2 = df2[df2["workingday"] == 0]
+    
 # =========================
 # Pertanyaan Bisnis 1
 # =========================
+
 st.subheader(
     "📌 Pertanyaan Bisnis 1: Bagaimana pola rata-rata jumlah rental sepeda per jam "
     "antara hari kerja dan hari libur/akhir pekan?"
 )
-st.subheader("📌 Pola Rental Per Jam (Interaktif)")
 
 hourly = (
-    df.groupby(["hr", "workingday_label"])["cnt"]
+    df2.groupby(["hr", "workingday_label"])["cnt"]
     .mean()
     .reset_index()
+    .rename(columns={"cnt": "avg_cnt"})
 )
 
-fig = px.line(
-    hourly,
-    x="hr",
-    y="cnt",
-    color="workingday_label",
-    markers=True,
-    labels={
-        "hr": "Jam",
-        "cnt": "Rata-rata Rental",
-        "workingday_label": "Tipe Hari"
-    },
-    title="Pola Rental Sepeda Per Jam"
-)
+wd = hourly[hourly["workingday_label"] == "Hari Kerja"]
+wk = hourly[hourly["workingday_label"] == "Akhir Pekan/Libur"]
 
-st.plotly_chart(fig, use_container_width=True)
+fig, ax = plt.subplots(figsize=(13, 5))
+
+ax.plot(wd["hr"], wd["avg_cnt"], marker="o", linewidth=2.5, label="Hari Kerja")
+ax.plot(wk["hr"], wk["avg_cnt"], marker="s", linewidth=2.5, label="Akhir Pekan/Libur")
+
+ax.set_xlabel("Jam (0–23)")
+ax.set_ylabel("Rata-rata Jumlah Rental")
+ax.set_title("Pola Rata-rata Rental Sepeda Per Jam: Hari Kerja vs Akhir Pekan/Libur")
+ax.set_xticks(range(0, 24))
+ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+ax.legend()
+ax.grid(axis="y", alpha=0.35, linestyle="--")
+
+fig.tight_layout()
+st.pyplot(fig)
+plt.close(fig)
+
+st.dataframe(hourly, use_container_width=True, hide_index=True)
 st.markdown("---")
 
-# =========================
-# Visualisasi Tambahan Q1
-# =========================
-st.subheader("🗓️ Heatmap Rental per Jam dan Hari")
-
-pivot = df.pivot_table(
-    values="cnt",
-    index="weekday_label",
-    columns="hr",
-    aggfunc="mean"
-)
-
-fig = px.imshow(
-    pivot,
-    aspect="auto",
-    color_continuous_scale="YlOrRd",
-    labels=dict(x="Jam", y="Hari", color="Rental")
-)
-
-st.plotly_chart(fig, use_container_width=True)
 # =========================
 # Visualisasi Tambahan Q1
 # =========================
