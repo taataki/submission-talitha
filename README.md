@@ -1,4 +1,4 @@
-# Bike Sharing Dashboard
+# Bike Sharing Collection Dashboard
 
 ## Setup Virtual Environment
 ```
