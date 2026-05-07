@@ -18,19 +18,19 @@ def load_data():
     df = pd.read_csv("main_data.csv")
     df["dteday"] = pd.to_datetime(df["dteday"])
     df["year"] = df["yr"].map({0: 2011, 1: 2012})
-
-    if "workingday_label" not in df.columns:
-        df["workingday_label"] = df["workingday"].map({
-            0: "Akhir Pekan/Libur",
-            1: "Hari Kerja"
-        })
-
+    df["workingday_label"] = df["workingday"].map({
+        0: "Akhir Pekan/Libur",
+        1: "Hari Kerja"
+    })
     df.sort_values("dteday", inplace=True)
     df.reset_index(drop=True, inplace=True)
     return df
 
 df_full = load_data()
 
+# =========================
+# Sidebar Filter
+# =========================
 with st.sidebar:
     st.title("🚲 Bike Sharing")
     st.markdown("---")
@@ -45,21 +45,41 @@ with st.sidebar:
         max_value=max_date,
     )
 
-    if len(date_range) == 2:
-        start_date, end_date = date_range
-    else:
-        start_date, end_date = min_date, max_date
+    tipe_hari = st.selectbox(
+        "Pilih Tipe Hari",
+        ["Semua", "Hari Kerja", "Akhir Pekan/Libur"]
+    )
+
+    st.markdown("---")
+    st.caption("Gunakan filter untuk eksplorasi data.")
+
+if len(date_range) == 2:
+    start_date, end_date = date_range
+else:
+    start_date, end_date = min_date, max_date
 
 df = df_full[
     (df_full["dteday"] >= pd.Timestamp(start_date)) &
     (df_full["dteday"] <= pd.Timestamp(end_date))
 ].copy()
 
+if tipe_hari == "Hari Kerja":
+    df = df[df["workingday"] == 1]
+elif tipe_hari == "Akhir Pekan/Libur":
+    df = df[df["workingday"] == 0]
+
+# =========================
+# Header
+# =========================
 st.title("🚲 Bike Sharing Analysis Dashboard")
 st.markdown("Washington D.C. · 2011–2012")
 st.markdown("---")
 
+# =========================
+# KPI
+# =========================
 col1, col2, col3, col4 = st.columns(4)
+
 col1.metric("Total Hari", f"{len(df):,}")
 col2.metric("Total Rental", f"{df['cnt'].sum():,}")
 col3.metric("Rata-rata Harian", f"{df['cnt'].mean():,.0f}")
@@ -67,12 +87,11 @@ col4.metric("Maks. Rental/Hari", f"{df['cnt'].max():,}")
 
 st.markdown("---")
 
-# =========================================================
+# =========================
 # Pertanyaan Bisnis 1
-# =========================================================
+# =========================
 st.subheader(
-    "📌 Pertanyaan Bisnis 1: Bagaimana perbedaan rata-rata rental sepeda "
-    "antara hari kerja dan hari libur/akhir pekan?"
+    "📌 Pertanyaan Bisnis 1: Bagaimana perbedaan rental sepeda antara hari kerja dan hari libur/akhir pekan?"
 )
 
 workingday_stats = (
@@ -94,9 +113,11 @@ sns.barplot(
     y="Rata-rata Rental",
     ax=ax
 )
+
 ax.set_xlabel("Tipe Hari")
 ax.set_ylabel("Rata-rata Rental Harian")
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+
 fig.tight_layout()
 st.pyplot(fig)
 plt.close(fig)
@@ -105,10 +126,10 @@ st.dataframe(workingday_stats, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
-# =========================================================
-# Visualisasi tambahan untuk Pertanyaan Bisnis 1
-# =========================================================
-st.subheader("📊 Pola Rental Berdasarkan Hari dalam Seminggu")
+# =========================
+# Visualisasi Tambahan Q1
+# =========================
+st.subheader("📊 Rata-rata Rental Berdasarkan Hari dalam Seminggu")
 
 weekday_order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -130,9 +151,11 @@ sns.barplot(
     y="Rata-rata Rental",
     ax=ax
 )
+
 ax.set_xlabel("Hari")
 ax.set_ylabel("Rata-rata Rental Harian")
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+
 fig.tight_layout()
 st.pyplot(fig)
 plt.close(fig)
@@ -141,9 +164,9 @@ st.dataframe(weekday_stats, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
-# =========================================================
+# =========================
 # Pertanyaan Bisnis 2
-# =========================================================
+# =========================
 st.subheader(
     "📌 Pertanyaan Bisnis 2: Bagaimana pengaruh musim terhadap jumlah rental sepeda?"
 )
@@ -168,9 +191,11 @@ sns.barplot(
     y="Rata-rata Rental",
     ax=ax
 )
+
 ax.set_xlabel("Musim")
 ax.set_ylabel("Rata-rata Rental Harian")
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+
 fig.tight_layout()
 st.pyplot(fig)
 plt.close(fig)
@@ -179,9 +204,9 @@ st.dataframe(season_stats, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
-# =========================================================
-# Visualisasi tambahan: Cuaca
-# =========================================================
+# =========================
+# Visualisasi Cuaca
+# =========================
 st.subheader("🌤️ Rata-rata Rental Berdasarkan Kondisi Cuaca")
 
 weather_stats = (
@@ -204,9 +229,11 @@ sns.barplot(
     y="Rata-rata Rental",
     ax=ax
 )
+
 ax.set_xlabel("Kondisi Cuaca")
 ax.set_ylabel("Rata-rata Rental Harian")
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+
 fig.tight_layout()
 st.pyplot(fig)
 plt.close(fig)
@@ -215,25 +242,27 @@ st.dataframe(weather_stats, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
-# =========================================================
+# =========================
 # Tren Harian
-# =========================================================
+# =========================
 st.subheader("📈 Tren Rental Harian")
 
 fig, ax = plt.subplots(figsize=(16, 4))
 ax.plot(df["dteday"], df["cnt"], linewidth=1.5)
+
 ax.set_xlabel("Tanggal")
 ax.set_ylabel("Jumlah Rental")
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+
 fig.tight_layout()
 st.pyplot(fig)
 plt.close(fig)
 
 st.markdown("---")
 
-# =========================================================
-# Tren Bulanan per Tahun
-# =========================================================
+# =========================
+# Tren Bulanan
+# =========================
 st.subheader("📅 Rata-rata Rental Bulanan per Tahun")
 
 monthly_avg = (
@@ -258,9 +287,11 @@ sns.lineplot(
     marker="o",
     ax=ax
 )
+
 ax.set_xlabel("Bulan")
 ax.set_ylabel("Rata-rata Rental Harian")
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+
 fig.tight_layout()
 st.pyplot(fig)
 plt.close(fig)
@@ -281,9 +312,9 @@ st.dataframe(yearly_stats, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
-# =========================================================
+# =========================
 # Casual vs Registered
-# =========================================================
+# =========================
 st.subheader("👥 Total Rental Berdasarkan Tipe Pengguna")
 
 user_total = pd.DataFrame({
@@ -299,9 +330,11 @@ sns.barplot(
     y="Total Rental",
     ax=ax
 )
+
 ax.set_xlabel("Tipe User")
 ax.set_ylabel("Total Rental")
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+
 fig.tight_layout()
 st.pyplot(fig)
 plt.close(fig)
@@ -310,9 +343,9 @@ st.dataframe(user_total, use_container_width=True, hide_index=True)
 
 st.markdown("---")
 
-# =========================================================
-# Korelasi Numerik
-# =========================================================
+# =========================
+# Korelasi
+# =========================
 st.subheader("🌡️ Korelasi Variabel Numerik")
 
 corr_cols = [
@@ -335,6 +368,7 @@ sns.heatmap(
     cmap="coolwarm",
     ax=ax
 )
+
 fig.tight_layout()
 st.pyplot(fig)
 plt.close(fig)
